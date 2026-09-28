@@ -3,11 +3,11 @@ import { DomainException } from '../../domain/exceptions/domain.exception.js';
 import { flattenZodIssues, validate, ValidationException } from './validation.exception.js';
 
 describe('ValidationException', () => {
-	it('should be a DomainException with the validate error code and VALIDATION kind', () => {
+	it('should be a DomainException with the VALIDATE_ERROR key and VALIDATION kind', () => {
 		const exception = new ValidationException(['name: required']);
 
 		expect(exception).toBeInstanceOf(DomainException);
-		expect(exception.errorCode).toBe(900422);
+		expect(exception.message).toBe('VALIDATE_ERROR');
 		expect(exception.kind).toBe('VALIDATION');
 		expect(exception.errors).toEqual(['name: required']);
 	});

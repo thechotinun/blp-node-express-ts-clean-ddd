@@ -1,14 +1,12 @@
 import { EXAMPLE_ID, FIXED_DATE, exampleFactory } from '../testing/example.factory.js';
 import { Example } from './example.entity.js';
-import { ExampleErrorCode } from './example.exception.js';
 import { ExampleRegistered } from './example.events.js';
 
-const INVALID_NAME = ExampleErrorCode.INVALID_NAME;
 const later = new Date('2026-02-01T00:00:00.000Z');
 
 const register = (name: string) => Example.register({ id: EXAMPLE_ID, name, now: FIXED_DATE });
 
-const invalidName = expect.objectContaining({ errorCode: INVALID_NAME });
+const invalidName = expect.objectContaining({ message: 'EXAMPLE_INVALID_NAME' });
 
 describe('Example', () => {
 	describe('register', () => {

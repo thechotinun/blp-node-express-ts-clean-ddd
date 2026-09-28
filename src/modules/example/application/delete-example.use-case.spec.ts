@@ -1,4 +1,3 @@
-import { ExampleErrorCode } from '../domain/example.exception.js';
 import { EXAMPLE_ID, mockExampleRepository } from '../testing/example.factory.js';
 import { DeleteExample } from './delete-example.use-case.js';
 
@@ -16,7 +15,7 @@ describe('DeleteExample', () => {
 		examples.delete.mockResolvedValue(false);
 
 		await expect(new DeleteExample(examples).execute({ id: EXAMPLE_ID })).rejects.toMatchObject({
-			errorCode: ExampleErrorCode.NOT_FOUND,
+			message: 'EXAMPLE_NOT_FOUND',
 		});
 	});
 });

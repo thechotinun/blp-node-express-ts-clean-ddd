@@ -1,4 +1,3 @@
-import { ExampleErrorCode } from '../domain/example.exception.js';
 import type { Mocked } from 'vitest';
 import type { ExampleRepository } from '../domain/example.repository.js';
 import { EXAMPLE_ID, exampleFactory, mockExampleRepository } from '../testing/example.factory.js';
@@ -26,7 +25,7 @@ describe('GetExample', () => {
 		examples.findById.mockResolvedValue(null);
 
 		await expect(useCase.execute({ id: EXAMPLE_ID })).rejects.toMatchObject({
-			errorCode: ExampleErrorCode.NOT_FOUND,
+			message: 'EXAMPLE_NOT_FOUND',
 		});
 	});
 });

@@ -1,7 +1,22 @@
 import type { NextFunction, Request, Response } from 'express';
 import { DomainException } from '../../domain/exceptions/domain.exception.js';
 import { ValidationException } from '../../domain/exceptions/validation.exception.js';
-import { exceptionFilter, notFoundHandler } from './exception.filter.js';
+import { createErrorHandlers } from './exception.filter.js';
+
+const codes: Record<string, number> = {
+	UNDEFINED_ERROR: 0,
+	UNAUTHORIZED: 900403,
+	VALIDATE_ERROR: 900422,
+	BAD_REQUEST: 900423,
+	THING_NOT_FOUND: 990001,
+};
+const { exceptionFilter, notFoundHandler } = createErrorHandlers((key) => {
+	const code = codes[key];
+
+	return code === undefined
+		? { code: 900001, message: 'UNREGISTERED_ERROR_KEY' }
+		: { code, message: key };
+});
 
 const buildResponse = () => {
 	const json = vi.fn();
@@ -25,7 +40,7 @@ describe('exceptionFilter', () => {
 
 	it('should report NOT_FOUND as 404 with the error in the body', () => {
 		const { status, json } = run(
-			new DomainException(990001, 'THING_NOT_FOUND', 'NOT_FOUND', ['not found']),
+			new DomainException('THING_NOT_FOUND', 'NOT_FOUND', ['not found']),
 		);
 
 		expect(status).toHaveBeenCalledWith(404);
@@ -40,16 +55,18 @@ describe('exceptionFilter', () => {
 		['CONFLICT', 409],
 		['BUSINESS_RULE', 422],
 	] as const)('should report %s as %i', (kind, code) => {
-		const { status } = run(new DomainException(990003, 'THING_CREATE_ERROR', kind));
+		const { status } = run(new DomainException('THING_CREATE_ERROR', kind));
 
 		expect(status).toHaveBeenCalledWith(code);
 	});
 
-	it('should use the exception message even for codes missing from the shared table', () => {
-		const { json } = run(new DomainException(123456, 'ORDER_LOCKED', 'BUSINESS_RULE'));
+	it('should send the code and message resolveKey gives for an unregistered key', () => {
+		const { json } = run(new DomainException('ORDER_LOCKED', 'BUSINESS_RULE', ['locked']));
 
 		expect(json).toHaveBeenCalledWith(
-			expect.objectContaining({ error: { code: 123456, message: 'ORDER_LOCKED', errors: [] } }),
+			expect.objectContaining({
+				error: { code: 900001, message: 'UNREGISTERED_ERROR_KEY', errors: ['locked'] },
+			}),
 		);
 	});
 

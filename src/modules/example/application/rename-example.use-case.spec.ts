@@ -1,4 +1,3 @@
-import { ExampleErrorCode } from '../domain/example.exception.js';
 import type { Mocked } from 'vitest';
 import type { Example } from '../domain/example.entity.js';
 import type { ExampleRepository } from '../domain/example.repository.js';
@@ -28,7 +27,7 @@ describe('RenameExample', () => {
 		examples.findById.mockResolvedValue(null);
 
 		await expect(useCase.execute({ id: EXAMPLE_ID, name: 'New' })).rejects.toMatchObject({
-			errorCode: ExampleErrorCode.NOT_FOUND,
+			message: 'EXAMPLE_NOT_FOUND',
 		});
 		expect(examples.save).not.toHaveBeenCalled();
 	});
@@ -38,7 +37,7 @@ describe('RenameExample', () => {
 		examples.save.mockResolvedValue(null);
 
 		await expect(useCase.execute({ id: EXAMPLE_ID, name: 'New' })).rejects.toMatchObject({
-			errorCode: ExampleErrorCode.NOT_FOUND,
+			message: 'EXAMPLE_NOT_FOUND',
 		});
 	});
 
@@ -46,7 +45,7 @@ describe('RenameExample', () => {
 		examples.findById.mockResolvedValue(exampleFactory());
 
 		await expect(useCase.execute({ id: EXAMPLE_ID, name: ' ' })).rejects.toMatchObject({
-			errorCode: ExampleErrorCode.INVALID_NAME,
+			message: 'EXAMPLE_INVALID_NAME',
 		});
 		expect(examples.save).not.toHaveBeenCalled();
 	});

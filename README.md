@@ -65,11 +65,11 @@ src/
 ├── app.ts                  # Express app: mounts modules at /api/v1/<module>, /health, error handler
 ├── config/                 # env.schema.ts (zod) + env.ts (loads .env)
 ├── architecture.spec.ts    # test enforcing the dependency rule between layers
-├── error-codes.registry.ts # reserved error-code block per module
-├── error-codes.spec.ts     # test enforcing unique codes inside reserved blocks
+├── error-codes.registry.ts # catalog of every numeric API code → error key
+├── error-codes.spec.ts     # tests for the key → code lookup
 ├── shared/                 # shared kernel — must not import from modules
 │   ├── domain/             # Entity, AggregateRoot, ValueObject, DomainEvent, IdGenerator,
-│   │                       # pagination (PageRequest/Page), exceptions (DomainException, generic ErrorCodes)
+│   │                       # pagination (PageRequest/Page), exceptions (DomainException, SharedErrorKey)
 │   ├── application/        # UseCase, BaseDto
 │   ├── infrastructure/     # Prisma client, BaseRepository (soft delete + paginate), UuidGenerator
 │   └── presentation/       # exceptionFilter, validate (zod), ApiResource, toPaginated, paginateQuerySchema
@@ -159,18 +159,22 @@ The domain throws a `DomainException` with a `kind` and knows nothing about HTTP
 | Unknown route                | 404  | 0                          |
 | Anything unexpected          | 500  | 0                          |
 
-**Error codes:** generic codes live in [error-codes.constant.ts](src/shared/domain/exceptions/error-codes.constant.ts) (0, 900xxx).
-Module codes live in the module itself, in `modules/<name>/domain/<name>.exception.ts` (exported as `<Name>ErrorCode`).
-Each module owns **one block of 100 codes**, reserved in [src/error-codes.registry.ts](src/error-codes.registry.ts) — the single list of who owns which block:
+**Error codes:** modules only know error **keys** — `ExampleException` throws `'EXAMPLE_NOT_FOUND'` and declares its keys as `ExampleErrorKey`.
+Every numeric code lives in one catalog, [src/error-codes.registry.ts](src/error-codes.registry.ts); the exception filter looks the code up when it renders the response:
 
 ```ts
-export const ErrorCodeRegistry = {
-	example: 1001, // codes 100100–100199
-};
+export const ErrorCodes = {
+	0: 'UNDEFINED_ERROR',
+	900422: 'VALIDATE_ERROR',
+	// example 1001xx
+	100101: 'EXAMPLE_NOT_FOUND',
+	100106: 'EXAMPLE_INVALID_NAME',
+} as const satisfies Record<number, string>;
 ```
 
-Reserve a block there first; a block can be reserved before its module exists.
-[src/error-codes.spec.ts](src/error-codes.spec.ts) fails when a code is reused, a module has codes but no reservation, a code falls outside its module's block, two modules reserve the same block, or a reservation takes a shared block (0, 900xxx).
+Codes 0 / 900xxx are shared; each module takes one block of 100 (`1001xx` example).
+The compiler fails on a duplicate code. A key a module throws but the catalog lacks is sent as
+`900001 UNREGISTERED_ERROR_KEY` and logged with `console.warn` naming the key — add every new key to the catalog. A key listed twice is not checked.
 
 ## Database
 
@@ -184,10 +188,10 @@ Reserve a block there first; a block can be reserved before its module exists.
 
 Using an `order` module as the example:
 
-1. **Error codes** — reserve a free block in [src/error-codes.registry.ts](src/error-codes.registry.ts), e.g. `order: 1002`
+1. **Error codes** — list each `OrderErrorKey` under a code in a free block of [src/error-codes.registry.ts](src/error-codes.registry.ts), e.g. `100201: 'ORDER_NOT_FOUND'`
 2. **Prisma** — add `model Order` (with the base columns and `@@map("orders")`) → `npm run db:migrate -- --name add_order`
 3. **domain** — `order.entity.ts` (aggregate: `create`/`reconstitute` + business rules), `order.repository.ts` (interface),
-   `order.exception.ts` (`OrderErrorCode` + `OrderException`, codes inside the reserved block)
+   `order.exception.ts` (`OrderErrorKey` + `OrderException extends DomainException<OrderErrorKey>`)
 4. **application** — `order.dto.ts` (`extends BaseDto`) and one `*.use-case.ts` per use case (takes the repository interface via the constructor)
 5. **infrastructure** — `order.mapper.ts`, `prisma-order.repository.ts` (`extends BaseRepository`, `implements OrderRepository`)
 6. **presentation/http** — `order.schemas.ts` (zod), `order.controller.ts` (`validate` → use case → `ApiResource.send`), `order.routes.ts`

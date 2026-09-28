@@ -1,7 +1,10 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { HttpStatusMessages } from '../constants/http-status-messages.constant.js';
-import { ErrorCodes } from '../../domain/exceptions/error-codes.constant.js';
-import { DomainException, type DomainErrorKind } from '../../domain/exceptions/domain.exception.js';
+import {
+	DomainException,
+	type DomainErrorKind,
+	type SharedErrorKey,
+} from '../../domain/exceptions/domain.exception.js';
 
 const HTTP_INTERNAL_SERVER_ERROR = 500;
 
@@ -15,31 +18,18 @@ const httpStatusByKind: Record<DomainErrorKind, number> = {
 	BUSINESS_RULE: 422,
 };
 
+/** Turns an error key into the code and message clients see (see src/error-codes.registry.ts). */
+export type ResolveErrorKey = (key: string) => { code: number; message: string };
+
 interface ErrorResponseInterface {
 	status: { code: number; message: string };
 	error: { code: number; message: string; errors: string[] };
 }
 
-/**
- * @param [errorMessage] defaults to the generic ErrorCodes name for `errorCode`
- */
-function buildErrorResponse(
-	statusCode: number,
-	errorCode: number,
-	errors: string[],
-	errorMessage: string = ErrorCodes[errorCode] ?? ErrorCodes[0] ?? '',
-): ErrorResponseInterface {
-	return {
-		status: { code: statusCode, message: HttpStatusMessages[statusCode] ?? '' },
-		error: { code: errorCode, message: errorMessage, errors },
-	};
-}
-
 interface ResolvedError {
 	statusCode: number;
-	errorCode: number;
+	errorKey: string;
 	errors: string[];
-	errorMessage?: string;
 }
 
 /** Errors raised by Express / body-parser (e.g. malformed JSON) carry their own 4xx status. */
@@ -55,35 +45,57 @@ function resolveError(exception: unknown): ResolvedError {
 	if (exception instanceof DomainException) {
 		return {
 			statusCode: httpStatusByKind[exception.kind],
-			errorCode: exception.errorCode,
+			errorKey: exception.message,
 			errors: exception.errors,
-			errorMessage: exception.message,
 		};
 	}
 
 	const status = clientErrorStatus(exception);
 
 	if (status !== undefined) {
-		const errorCode = status === 401 || status === 403 ? 900403 : 900423;
+		const errorKey: SharedErrorKey =
+			status === 401 || status === 403 ? 'UNAUTHORIZED' : 'BAD_REQUEST';
 
-		return { statusCode: status, errorCode, errors };
+		return { statusCode: status, errorKey, errors };
 	}
 
-	return { statusCode: HTTP_INTERNAL_SERVER_ERROR, errorCode: 0, errors };
+	return { statusCode: HTTP_INTERNAL_SERVER_ERROR, errorKey: 'UNDEFINED_ERROR', errors };
 }
 
-/** Maps any thrown error to `{ status, error: { code, message, errors } }`. Register last. */
-export const exceptionFilter: ErrorRequestHandler = (exception: unknown, _req, res, _next) => {
-	const { statusCode, errorCode, errors, errorMessage } = resolveError(exception);
+/**
+ * Error handlers that render `{ status, error: { code, message, errors } }`, where `message`
+ * and `code` come from `resolveKey`. Register `notFoundHandler` then `exceptionFilter` last.
+ */
+export function createErrorHandlers(resolveKey: ResolveErrorKey): {
+	exceptionFilter: ErrorRequestHandler;
+	notFoundHandler: RequestHandler;
+} {
+	const buildErrorResponse = (
+		statusCode: number,
+		errorKey: string,
+		errors: string[],
+	): ErrorResponseInterface => ({
+		status: { code: statusCode, message: HttpStatusMessages[statusCode] ?? '' },
+		error: { ...resolveKey(errorKey), errors },
+	});
 
-	if (statusCode === HTTP_INTERNAL_SERVER_ERROR) {
-		// oxlint-disable-next-line no-console -- no logger yet; unexpected errors must still surface
-		console.error(exception);
-	}
+	return {
+		exceptionFilter: (exception: unknown, _req, res, _next) => {
+			const { statusCode, errorKey, errors } = resolveError(exception);
 
-	res.status(statusCode).json(buildErrorResponse(statusCode, errorCode, errors, errorMessage));
-};
+			if (statusCode === HTTP_INTERNAL_SERVER_ERROR) {
+				// oxlint-disable-next-line no-console -- no logger yet; unexpected errors must still surface
+				console.error(exception);
+			}
 
-export const notFoundHandler: RequestHandler = (req, res) => {
-	res.status(404).json(buildErrorResponse(404, 0, [`Route ${req.method} ${req.path} not found`]));
-};
+			res.status(statusCode).json(buildErrorResponse(statusCode, errorKey, errors));
+		},
+		notFoundHandler: (req, res) => {
+			res
+				.status(404)
+				.json(
+					buildErrorResponse(404, 'UNDEFINED_ERROR', [`Route ${req.method} ${req.path} not found`]),
+				);
+		},
+	};
+}
