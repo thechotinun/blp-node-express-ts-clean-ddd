@@ -1,10 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { HttpStatusMessages } from '../constants/http-status-messages.constant.js';
-import {
-	DomainException,
-	type DomainErrorKind,
-	type SharedErrorKey,
-} from '../../domain/exceptions/domain.exception.js';
+import { DomainException, type DomainErrorKind } from '../../domain/exceptions/domain.exception.js';
 
 const HTTP_INTERNAL_SERVER_ERROR = 500;
 
@@ -17,6 +13,9 @@ const httpStatusByKind: Record<DomainErrorKind, number> = {
 	CONFLICT: 409,
 	BUSINESS_RULE: 422,
 };
+
+/** Error keys the HTTP layer raises itself, for failures that never reach the domain. */
+type HttpErrorKey = 'UNDEFINED_ERROR' | 'UNAUTHORIZED' | 'BAD_REQUEST';
 
 /** Turns an error key into the code and message clients see (see src/error-codes.registry.ts). */
 export type ResolveErrorKey = (key: string) => { code: number; message: string };
@@ -53,7 +52,7 @@ function resolveError(exception: unknown): ResolvedError {
 	const status = clientErrorStatus(exception);
 
 	if (status !== undefined) {
-		const errorKey: SharedErrorKey =
+		const errorKey: HttpErrorKey =
 			status === 401 || status === 403 ? 'UNAUTHORIZED' : 'BAD_REQUEST';
 
 		return { statusCode: status, errorKey, errors };

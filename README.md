@@ -69,7 +69,7 @@ src/
 ├── error-codes.spec.ts     # tests for the key → code lookup
 ├── shared/                 # shared kernel — must not import from modules
 │   ├── domain/             # Entity, AggregateRoot, ValueObject, DomainEvent, IdGenerator,
-│   │                       # pagination (PageRequest/Page), exceptions (DomainException, SharedErrorKey)
+│   │                       # pagination (PageRequest/Page), exceptions (DomainException, ValidationException)
 │   ├── application/        # UseCase, BaseDto
 │   ├── infrastructure/     # Prisma client, BaseRepository (soft delete + paginate), UuidGenerator
 │   └── presentation/       # exceptionFilter, validate (zod), ApiResource, toPaginated, paginateQuerySchema
