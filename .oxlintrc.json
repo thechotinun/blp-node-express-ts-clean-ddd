@@ -1,0 +1,58 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "import", "vitest"],
+	"categories": {
+		"correctness": "error"
+	},
+	"env": {
+		"es2024": true,
+		"node": true
+	},
+	"ignorePatterns": [
+		"dist",
+		"build",
+		"node_modules",
+		"coverage",
+		"prisma/migrations",
+		"src/shared/infrastructure/persistence/prisma/generated"
+	],
+	"rules": {
+		"no-unused-vars": "off",
+		"no-shadow": "off",
+		"typescript/no-unused-vars": [
+			"error",
+			{ "argsIgnorePattern": "^_", "ignoreRestSiblings": true }
+		],
+		"typescript/no-explicit-any": "error",
+		"typescript/no-shadow": "error",
+		"max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+		"max-lines-per-function": ["warn", { "max": 60 }],
+		"max-params": ["warn", 4],
+		"max-depth": ["warn", 3],
+		"complexity": ["warn", 10],
+		"no-var": "error",
+		"prefer-const": "error",
+		"eqeqeq": ["error", "always"],
+		"no-console": "warn",
+		"no-debugger": "error",
+		"no-duplicate-imports": "error",
+		"consistent-return": "warn",
+		"import/no-cycle": "error"
+	},
+	"overrides": [
+		{
+			"files": ["src/**/*.spec.ts", "src/**/testing/**"],
+			"rules": {
+				"max-lines-per-function": "off",
+				"max-lines": "off",
+				"vitest/require-mock-type-parameters": "off"
+			}
+		},
+		{
+			"files": ["src/main.ts", "scripts/**"],
+			"rules": {
+				"no-console": "off"
+			}
+		}
+	]
+}

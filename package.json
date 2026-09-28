@@ -1,0 +1,55 @@
+{
+  "name": "blp-node-express-ts-clean-ddd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "prisma generate && tsx watch src/main.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write \"src/**/*.ts\" \"*.ts\" \"scripts/**/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.ts\" \"scripts/**/*.mjs\"",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "prepare": "husky",
+    "commitlint": "commitlint --edit",
+    "test:coverage": "vitest run --coverage",
+    "coverage:staged": "node scripts/check-staged-coverage.mjs"
+  },
+  "keywords": [],
+  "author": "4l2T",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
+    "@commitlint/types": "20.5.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "@vitest/coverage-v8": "4.1.11",
+    "husky": "9.1.7",
+    "oxlint": "1.85.0",
+    "prettier": "3.9.9",
+    "prisma": "7.10.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": "^20.19 || ^22.12 || >=24.0"
+  }
+}

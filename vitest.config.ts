@@ -1,0 +1,19 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+	test: {
+		globals: true,
+		include: ['src/**/*.spec.ts'],
+		coverage: {
+			provider: 'v8',
+			include: ['src/**/*.ts'],
+			exclude: [
+				'src/**/*.spec.ts',
+				'src/**/testing/**',
+				'src/shared/infrastructure/persistence/prisma/generated/**',
+				'src/main.ts',
+			],
+			reporter: ['text', 'html'],
+		},
+	},
+});

@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/shared/infrastructure/persistence/prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Base columns (see src/shared/infrastructure/persistence/entities/base.entity.ts):
+//   id, createdDate, createdBy, updatedDate, updatedBy, isActive, deletedDate, deletedBy (soft delete)
+
+model Example {
+  id          String    @id @db.Uuid
+  name        String
+  createdDate DateTime  @default(now()) @map("created_date")
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedDate DateTime  @default(now()) @updatedAt @map("updated_date")
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  isActive    Boolean   @default(true) @map("is_active")
+  deletedDate DateTime? @map("deleted_date")
+  deletedBy   String?   @map("deleted_by") @db.Uuid
+
+  @@map("examples")
+}
